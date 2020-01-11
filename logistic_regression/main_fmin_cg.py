@@ -1,10 +1,11 @@
 # this file will use only fmin_cg for calculating the optimized theta
+# if other data files are to be classified, make sure it is csv, has y column at last, and length is >= 10.
 
 class main:
     class logisreg:
         def __init__(self, y, *features):
             self.m = len(y)
-            self.features = [np.ones(self.m), *features]
+            self.features = [np.ones(self.m), *features] # it means, all are linear, i.e. theta0x0 + theta1x1 + ...
             self.X = np.asarray(self.features).T
             self.Y = np.reshape(y, (len(y), 1))
             
@@ -30,14 +31,15 @@ class main:
             return rate.ravel()
             
         def fit(self):
+            # uses fmin_cg algorithm, a conjugate gradient algorithm, Advanced Optimization.
             self.theta = optimize.fmin_cg(self.cost_func,
                                     np.ones(len(self.features)), 
                                     self.grad, 
                                     args = (self.X.ravel(), self.Y.ravel()))
             print('Theta optimized: ', self.theta)
                                     
-        def predict(self, x1, x2, y):
-            features = [np.ones(len(x1)), x1,x2]
+        def predict(self, y, *features):
+            features = [np.ones(len(y)), *features]
             prediction = self.hx(np.asarray(features).T, self.theta)
             return prediction, self.cost_func(self.theta, np.asarray(features).T, np.asarray(y.to_list()))
 
@@ -53,22 +55,23 @@ class main:
         df.plot(x = 'x1', y = 'x2_modified', ax = ax)
         plt.show()
     
-    def run(self):
-        if os.path.exists('data.csv'):
-            df = pd.read_csv('data.csv')
+    def run(self, datafile):
+        if os.path.exists(datafile):
+            df = pd.read_csv(datafile)
         else:
-            with open('data.csv', 'w+') as f: pass
+            print('DataFile "{}" not found, creating it based on simple sample.'.format(datafile))
+            with open(datafile, 'w+') as f: pass
             df = pd.DataFrame(list(zip(np.random.randint(2, 100, 50),
             np.random.randint(2, 100, 50), np.random.choice([0, 1], 50))), columns = ['x1','x2', 'y'])
-            df.to_csv('data.csv', index = False)
+            df.to_csv(datafile, index = False)
         df_train, df_test = df.head(8* len(df)//10).copy(), (df.iloc[8* len(df)//10:]).copy()
         regressor = self.logisreg(np.asarray(df_train.y.to_list()), 
                                   *[np.asarray(df_train[i].to_list()) for i in df_train.columns[:-1]])
         regressor.fit()
         #model, hx_train = regressor.fit()
-        hx, cost= regressor.predict(df_test.x1, df_test.x2, df_test.y)
+        hx, cost= regressor.predict(df_test.y, *[df_test[i] for i in df_test.columns[:-1]] )
         print('cost: ', cost)
-        self.plot_decision_boundary(df, regressor.theta)
+        if len(df.columns) == 3: self.plot_decision_boundary(df, regressor.theta)
 
 
 
@@ -81,4 +84,4 @@ if __name__ == '__main__':
     from scipy.special import expit
     from scipy import optimize
     import matplotlib.pyplot as plt
-    main().run()
+    main().run('data1.csv')
