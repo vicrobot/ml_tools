@@ -139,28 +139,30 @@ class main:
         
         df= df.sample(frac =1).reset_index(drop = True)
         df_train, df_test = df.iloc[: 8* len(df)//10].copy(), df.iloc[8* len(df)//10 :].copy()
-        theta = np.zeros((len(labels), len(df.columns)))
-        for i in range(1, len(labels) + 1):
-            temp_y = np.where(df_train.y == i-1, 1, 0)
-            print(temp_y)
-            monoregressor = self.logisreg(np.asarray(temp_y), #df_train.y.to_list()
-                                  *[np.asarray(df_train[i].to_list()) for i in df_train.columns[:-1]])
-            monoregressor.fit()
-            theta[i-1] = monoregressor.theta
-        print('model_trained')
         if os.path.exists('theta.pickle'):
             with open('theta.pickle', 'rb+') as var:
                 theta = pickle.load(var)
         else:
+            theta = np.zeros((len(labels), len(df.columns)))
+            for i in range(1, len(labels) + 1):
+                temp_y = np.where(df_train.y == i-1, 1, 0)
+                print(temp_y)
+                monoregressor = self.logisreg(np.asarray(temp_y), #df_train.y.to_list()
+                                      *[np.asarray(df_train[i].to_list()) for i in df_train.columns[:-1]])
+                monoregressor.fit()
+                theta[i-1] = monoregressor.theta
+            print('model_trained')
             with open('theta.pickle', 'wb+') as var:
                 pickle.dump(theta, var)
         
-        #model, hx_train = regressor.fit()
         prediction = labels[self.multiclass_prediction(np.asarray(df_test.y.to_list()), theta,
                              *[np.asarray(df_test[i].to_list()) for i in df_test.columns[:-1]] )]
-        res = pd.DataFrame({'p': prediction, 'y': df_test.y})
-        print(res)
-        print((res.p == res.y).describe())
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            res = pd.DataFrame({'p': prediction, 'y': df_test.y}, dtype = np.int64).reset_index(drop = True)
+        success = np.where(res.p == res.y, 1, 0).sum()
+        failure = len(res) - success
+        print('success:', success, ', failure:', failure, ', odds of favor:', success/len(res)) 
         
         
 
@@ -173,4 +175,6 @@ if __name__ == '__main__':
     from scipy import optimize
     import matplotlib.pyplot as plt
     import pickle
-    main().run('digits1.csv')
+    import warnings
+    #warnings.filterwarnings('error')
+    main().run('digits.csv')
