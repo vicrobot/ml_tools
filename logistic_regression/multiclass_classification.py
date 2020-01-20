@@ -73,8 +73,6 @@ class main:
         df.plot(x = 'x1', y = 'x2_modified', ax = ax)
         plt.show()
     
-    
-        
     def multiclass_prediction(self, y,theta, *features):
         features = [np.ones(len(y)), *features]
         X= np.asarray(features).T
@@ -119,16 +117,6 @@ class main:
             df.apply(foo, args = (df.columns,))
             #df= df.head(20).copy()
             """
-            def foo(x, *args):
-                cols = args[0]
-                lc = list(cols)
-                powers = list(range(1, len(lc))) + [1] # that last 1 is for y's powers
-                assert len(df.columns) == len(powers), 'powers ill defined'
-                try: return x**(powers[lc.index(x.name)])
-                except IndexError: print(lc, powers, x.name, lc.index(x.name)); exit()
-                
-            #df.apply(foo, args = (df.columns,))
-            #df= df.head(20).copy()
         else:
             print('DataFile "{}" not found, creating it based on simple sample.'.format(datafile))
             with open(datafile, 'w+') as f: pass
@@ -139,32 +127,62 @@ class main:
         
         df= df.sample(frac =1).reset_index(drop = True)
         df_train, df_test = df.iloc[: 8* len(df)//10].copy(), df.iloc[8* len(df)//10 :].copy()
+        
+        #weights cooking:-------------------------
+        
         if os.path.exists('theta.pickle'):
             with open('theta.pickle', 'rb+') as var:
                 theta = pickle.load(var)
         else:
             theta = np.zeros((len(labels), len(df.columns)))
             for i in range(1, len(labels) + 1):
-                temp_y = np.where(df_train.y == i-1, 1, 0)
+                temp_y = np.where(df_train.y == i, 1, 0)
                 print(temp_y)
                 monoregressor = self.logisreg(np.asarray(temp_y), #df_train.y.to_list()
                                       *[np.asarray(df_train[i].to_list()) for i in df_train.columns[:-1]])
                 monoregressor.fit()
-                theta[i-1] = monoregressor.theta
+                if i == len(labels):
+                    theta[0] = monoregressor.theta
+                else: theta[i] = monoregressor.theta
             print('model_trained')
             with open('theta.pickle', 'wb+') as var:
                 pickle.dump(theta, var)
+        
+        #predicting:-------------------------------
         
         prediction = labels[self.multiclass_prediction(np.asarray(df_test.y.to_list()), theta,
                              *[np.asarray(df_test[i].to_list()) for i in df_test.columns[:-1]] )]
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             res = pd.DataFrame({'p': prediction, 'y': df_test.y}, dtype = np.int64).reset_index(drop = True)
+            res.y = np.where(res.y == 10, 0, res.y)
         success = np.where(res.p == res.y, 1, 0).sum()
         failure = len(res) - success
-        print('success:', success, ', failure:', failure, ', odds of favor:', success/len(res)) 
+        print('success:', success, ', failure:', failure, ', odds of favor:', success/len(res))
         
+        #animating:--------------------------------
         
+        #return #enable it to stop animation
+        fig, ax = plt.subplots()
+        axes_obj = ax.imshow(np.asarray(df_test.iloc[0][:-1].to_list()).reshape(20, 20).T)
+        print('Predicted: ', end = '', flush = True)
+        gray = plt.cm.gray
+        def init():
+            img_arr = np.asarray(df_test.iloc[0][:-1].to_list()).reshape(20, 20).T
+            print('\b{}'.format(res.iloc[0][0]), end = '', flush = True)
+            return [ax.imshow(img_arr, cmap = gray)]
+        def animate(i):
+            img_arr = np.asarray(df_test.iloc[i][:-1].to_list()).reshape(20, 20).T
+            print('\b{}'.format(res.iloc[i][0]), end = '', flush = True)
+            return [ax.imshow(img_arr, cmap = gray)]
+        
+        ani = anim.FuncAnimation(fig, animate, frames = np.arange(1, len(df_test)), init_func = init, interval = 1500,
+                                 blit = True)
+        plt.show()
+        print()
+            
+        
+
 
 if __name__ == '__main__':
     import numpy as np
@@ -174,7 +192,8 @@ if __name__ == '__main__':
     from scipy.special import expit
     from scipy import optimize
     import matplotlib.pyplot as plt
+    import matplotlib.animation as anim
     import pickle
     import warnings
     #warnings.filterwarnings('error')
-    main().run('digits.csv')
+    main().run('digits1.csv')
