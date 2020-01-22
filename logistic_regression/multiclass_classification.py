@@ -10,9 +10,9 @@ Y X prob_that_X_is_Y(hx)
 4 x   ''
 5 x   something near to 0.89   ---------------> This is highest, thus it classifies that x is 5
 6 x   something near to 0
-7 x   something near to 0.56
-8 x   something near to 0.32
-9 x   something near to 0
+7 x   something near to 0.12
+8 x   something near to 0.52
+9 x   something near to 0.23
 """
 """
 For this; Y or say label would be a vector of size n and on nth place it has 1 else 0, and X would be a matrix of m*n size.
@@ -33,7 +33,7 @@ class main:
             
         def cost_func(self, theta, *args):
             X, y = args
-            lambda_val = 1
+            lambda_val = 0.001
             X = X.reshape(len(y), -1)
             hx = self.hx( X, theta)
             grad = (1/len(y))*(X.T @ (hx - y))
@@ -44,10 +44,12 @@ class main:
             
         def grad(self, theta, *args):
             X, Y = args
+            lambda_val = 0.001
             X = X.reshape(len(Y), -1)
             hx = self.hx( X, theta)
             rate = (1/len(Y))*(X.T @ (hx - Y)) # result will be a vector containing cost for each theta 
-            return rate.ravel()
+            regularized_rate = rate + (theta[1:]).sum()*(lambda_val/len(Y))
+            return regularized_rate.ravel()
             
         def fit(self):
             # uses fmin_cg algorithm, a conjugate gradient algorithm, Advanced Optimization.
@@ -163,6 +165,10 @@ class main:
         #animating:--------------------------------
         
         #return #enable it to stop animation
+        """
+        class matplotlib.animation.FuncAnimation(fig, func, frames=None, init_func=None, fargs=None, 
+        save_count=None, *, cache_frame_data=True, **kwargs)
+        """
         fig, ax = plt.subplots()
         axes_obj = ax.imshow(np.asarray(df_test.iloc[0][:-1].to_list()).reshape(20, 20).T)
         print('Predicted: ', end = '', flush = True)
@@ -196,4 +202,4 @@ if __name__ == '__main__':
     import pickle
     import warnings
     #warnings.filterwarnings('error')
-    main().run('digits1.csv')
+    main().run('digits.csv')
