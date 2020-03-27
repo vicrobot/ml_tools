@@ -192,7 +192,7 @@ class main:
 
 if __name__ == '__main__':
     import numpy as np
-    import random
+    #import random
     import pandas as pd
     import os
     from scipy.special import expit
