@@ -61,9 +61,22 @@ class main:
             prediction = self.hx(np.asarray(features).T, self.theta)
             return prediction, self.cost_func(prediction, np.asarray(y.to_list()))
 
+    def plot_decision_boundary(self, df, theta):
+        #sns.lmplot('x1', 'x2', data=df, hue='y', fit_reg=False)
+        """
+        since hx = theta0 + theta1*x1 + theta2*x2, thus on hx, this will be zero, or x2 = -(theta0 + theta1*x1)/theta2
+        """
+        theta = theta.ravel()
+        df['x2_modified'] = df.x1.apply(lambda x: -(theta[0] + theta[1]*x)/theta[2])
+        colors = np.where(df.y == 0, 'red', 'blue')
+        ax = df.plot(kind= 'scatter', x = 'x1', y ='x2', color = colors)
+        df.plot(x = 'x1', y = 'x2_modified', ax = ax)
+        plt.show()
+        
+        
     def run(self):
         if os.path.exists('data.csv'):
-            df = pd.read_csv('data.csv')
+            df = pd.read_csv('data.csv', delimiter=',')
         else:
             with open('data.csv', 'w+') as f: pass
             df = pd.DataFrame(list(zip(np.random.randint(2, 100, 50),
@@ -77,15 +90,8 @@ class main:
         print('cost: ', cost)
         df_test['hx'] = np.where(hx >=0.5, 1, 0)
         #cost = -(1/len(y))*(y*np.log(hx) + (1-y)*np.log(1- hx)).sum()
-        print(df_train.head(), '\n' , df_test)
-        
-        fig, ax = plt.subplots(2,2, sharey=True)
-        ax[0, 0].scatter(df_test[df_test.hx == 1].x1, df_test[df_test.hx == 1].x2)
-        ax[1, 0].scatter(df_test[df_test.hx == 0].x1, df_test[df_test.hx == 0].x2)
-        #ax[1, 0].scatter(np.arange(len(df_test.x2)), df_test.x2)
-        ax[0, 1].scatter(df_test[df_test.y == 1].x1, df_test[df_test.y == 1].x2)
-        ax[1, 1].scatter(df_test[df_test.y == 0].x1, df_test[df_test.y == 0].x2)
-        for i in ax.ravel(): i.grid('True')
+        #print(df_train.head(), '\n' , df_test)
+        self.plot_decision_boundary(df, model.theta)
         plt.show()
 
 

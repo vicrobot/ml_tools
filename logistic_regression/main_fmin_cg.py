@@ -17,13 +17,13 @@ class main:
             lambda_val = 1
             X = X.reshape(len(y), -1)
             hx = self.hx( X, theta)
-            grad = (1/len(y))*(X.T @ (hx - y))
             hx, y = hx.ravel(), y.ravel()
             cost = (-1/len(y))* (y*np.log(hx) + (1-y)*np.log(1 - hx+1e-10) ).sum()
             regularized_cost = cost + (theta[1:]*theta[1:]).sum()*(lambda_val/len(y))
             return cost
             
         def grad(self, theta, *args):
+            """ gradient of cost function"""
             X, Y = args
             X = X.reshape(len(Y), -1)
             hx = self.hx( X, theta)
@@ -32,11 +32,11 @@ class main:
             
         def fit(self):
             # uses fmin_cg algorithm, a conjugate gradient algorithm, Advanced Optimization.
-            self.theta = optimize.fmin_cg(self.cost_func,
-                                    np.ones(len(self.features)), 
-                                    self.grad, 
-                                    args = (self.X.ravel(), self.Y.ravel()))
-            print('Theta optimized: ', self.theta)
+            self.theta = optimize.fmin_cg(self.cost_func,            #cost function
+                                    np.ones(len(self.features)),     #initial theta
+                                    self.grad,                       #gradient of cost function
+                                    args = (self.X.ravel(), self.Y.ravel())) #extra args needed
+            print('Theta optimized:', self.theta)
                                     
         def predict(self, y, *features):
             features = [np.ones(len(y)), *features]
@@ -58,6 +58,31 @@ class main:
     def run(self, datafile):
         if os.path.exists(datafile):
             df = pd.read_csv(datafile)
+            """
+            for polynomial regression:- make df modified in df.columns[:-1], and do modification.
+            Ex: If your df has columns x1, x2, x3 ... y, then if you want it to be polynomial like
+            x1**a, x2**b, x3**c etc, then:
+            def foo(x, *args):
+                cols = args[0]
+                lc = list(cols)
+                powers = [a, b, c, d, ..., 1]
+                
+                return x**(powers[lc.index(x.name)])
+                
+            df.apply(foo, args = (df.columns,))
+            
+            Ex: For df of 4 cols:
+            def foo(x, *args):
+                cols = args[0]
+                lc = list(cols)
+                powers = [1,2, 3, 1]
+                assert len(df.columns) == len(powers), 'powers ill defined'
+                try: return x**(powers[lc.index(x.name)])
+                except IndexError: print(lc, powers, x.name, lc.index(x.name)); exit()
+                
+            df.apply(foo, args = (df.columns,))
+            """
+            
         else:
             print('DataFile "{}" not found, creating it based on simple sample.'.format(datafile))
             with open(datafile, 'w+') as f: pass
@@ -81,7 +106,7 @@ if __name__ == '__main__':
     import numpy as np
     import pandas as pd
     import os
-    from scipy.special import expit
+    from scipy.special import expit #sigmoid function
     from scipy import optimize
     import matplotlib.pyplot as plt
-    main().run('data1.csv')
+    main().run('data.csv')
