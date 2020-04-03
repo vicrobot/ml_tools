@@ -142,8 +142,9 @@ class main:
             self.Theta = optimize.fmin_cg(self.cost_func,
                                           np.random.rand((self.ils+1)*self.hls + (self.L-3)*(self.hls+1)*self.hls + 
                                           (self.hls+1)*self.ols),
-                                          self.grad)
-            print('Theta Optimized', self.Theta)
+                                          self.grad,
+                                          disp=0)
+            print('\nTheta Optimized', self.Theta)
             
         def predict(self, X):
             theta = self.Theta
@@ -200,11 +201,11 @@ class main:
         #specifying parameters and making neural network object.
         hidden_layer_count = 1
         hidden_layer_size = 25
-        lambda_val_l = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1]#, 5e-1, 1e0, 5e0, 1e1, 5e1, 1e2, 5e2]
+        lambda_val_l = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1]#, 1e0, 5e0, 1e1, 5e1, 1e2, 5e2]
+        #lambda_val_l = np.asarray(lambda_val_l)/1000
         combo_lambda_score = []
-        count = 1
         for lambda_val in lambda_val_l:
-            print("\nTraining {}".format(count)); count +=1
+            print("\nCross Validating at lambda: {}".format(lambda_val));
             model = self.NN(hidden_layer_count, hidden_layer_size, lambda_val)
             model.fit(X_train, self.make_vects(y_train))
             prediction_vects = model.predict(X_cv)
@@ -217,8 +218,8 @@ class main:
             combo_lambda_score.append((count_success/len(df_res), lambda_val, model))
         cls_sorted = sorted(combo_lambda_score, reverse=True)
         score_max, lambda_val_final, model = cls_sorted[0]
-        print("best lambda found: {}; score: {}".format(lambda_val_final, score_max))
-        print("Model Trained", "Testing...", end = "\n")
+        print("Best lambda found: {}; score: {}".format(lambda_val_final, score_max))
+        print("Model Trained.", "Testing...", sep = "\n")
         
         #predicting the result
         prediction_vects = model.predict(X_test)
@@ -241,12 +242,17 @@ if __name__ == "__main__":
 
 """
 For lambda selection, we do as i did up there.
-For learning curves plotting, we take our measuring parameter, say n(number of samples);
-Now train the model on that n, get theta, and note down train cost, and test cost at that obtained theta.
-Now move that n's value. And repeatedly nore Jtrain(theta), and Jtest(theta). Plot them and see if more n is needed.
-If j train and j test are approaching each other, as n-> inf, and both are tending to a desired error, then increase n.
-If they both approach big error as n-> inf, leave trying to increase n.
+For learning curves:
+When you are computing the training set error,
+make sure you compute it on the training subset (i.e., X(1:n,:) and y(1:n))
+(instead of the entire training set).However, for the cross validation error,
+you should compute it over the entire cross validation set.
+So; plotting that moving n,vs the error found of jtrain and jcv (j is cost func), we can decide whether to get more data from field will help on the basis of whether jcv and jtrain are going on desired error as n-> inf, else if they both are converging to a big error, then we'll not focus on more data collection.
 
+When training error is low, but thereis a gap between the training and cross validation errors, then it indicates a high
+variance problem(overfitting).
+When both the train error and cross validation error are high when the number of training examples is increased, indicating high bias(underfitting).
+This is super super easy to remember since when there'll be overfitting, jtrain will be seriously low and jcv won't thus gap, and lowness of jtrain. On the other hand, when underfitting, both jtrain and jcv are big.
 """
 
 
